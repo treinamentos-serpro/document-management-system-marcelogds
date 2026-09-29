@@ -36,9 +36,17 @@ class DocumentRepository {
     const filePath = this.resolveStoragePath(document.storageName);
 
     try {
-      await fs.access(filePath);
-    } catch {
-      return null;
+      const fileStats = await fs.lstat(filePath);
+
+      if (fileStats.isSymbolicLink() || !fileStats.isFile()) {
+        return null;
+      }
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        return null;
+      }
+
+      throw error;
     }
 
     return {

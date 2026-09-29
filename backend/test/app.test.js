@@ -4,6 +4,8 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { once } = require('node:events');
+const { spawnSync } = require('node:child_process');
+const DocumentRepository = require('../src/repositories/documentRepository');
 
 const storageDirectory = path.join(os.tmpdir(), `dms-test-${process.pid}`);
 process.env.STORAGE_DIR = storageDirectory;
@@ -29,6 +31,7 @@ test('upload, listagem e download de documentos', async (t) => {
 
   const emptyList = await fetch(`${baseUrl}/documents`);
   assert.equal(emptyList.status, 200);
+  assert.equal(emptyList.headers.get('x-powered-by'), null);
   assert.deepEqual(await emptyList.json(), { documents: [] });
 
   const missingFile = await fetch(`${baseUrl}/upload`, {
@@ -76,6 +79,52 @@ test('upload, listagem e download de documentos', async (t) => {
     body: largeForm,
   });
   assert.equal(largeUpload.status, 413);
+
+  const longNameForm = new FormData();
+  longNameForm.append('file', new Blob(['x']), `${'a'.repeat(256)}.txt`);
+  const longNameUpload = await fetch(`${baseUrl}/upload`, {
+    method: 'POST',
+    body: longNameForm,
+  });
+  assert.equal(longNameUpload.status, 400);
+});
+
+test('não disponibiliza symlinks nem arquivos ausentes para download', async () => {
+  const repository = new DocumentRepository(storageDirectory);
+  const symlinkName = 'symlink-document';
+  const missingName = 'missing-document';
+
+  await fs.symlink('/etc/hosts', path.join(storageDirectory, symlinkName));
+  repository.create({
+    id: 'symlink-id',
+    originalName: 'hosts.txt',
+    size: 1,
+    uploadedAt: new Date().toISOString(),
+    owner: 'test-user',
+    storageName: symlinkName,
+  });
+  repository.create({
+    id: 'missing-id',
+    originalName: 'missing.txt',
+    size: 1,
+    uploadedAt: new Date().toISOString(),
+    owner: 'test-user',
+    storageName: missingName,
+  });
+
+  assert.equal(await repository.findDownloadById('symlink-id'), null);
+  assert.equal(await repository.findDownloadById('missing-id'), null);
+});
+
+test('rejeita porta inválida na configuração', () => {
+  const result = spawnSync(process.execPath, ['-e', "require('./src/config')"], {
+    cwd: path.join(__dirname, '..'),
+    env: { ...process.env, PORT: 'invalid-port' },
+    encoding: 'utf8',
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /PORT deve ser um inteiro/);
 });
 
 after(async () => {

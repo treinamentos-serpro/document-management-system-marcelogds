@@ -58,6 +58,19 @@ jobs:
           file: exercise-toolkit/markdown-templates/step-feedback/checking-work.md
           edit-mode: replace
 
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependências do backend
+        run: npm ci --prefix backend
+
+      - name: Executar testes do backend
+        run: npm test --prefix backend
+
       - name: Verificar camadas do backend
         id: check-layers
         continue-on-error: true

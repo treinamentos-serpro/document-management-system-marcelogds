@@ -6,7 +6,7 @@ function errorHandler(error, req, res, next) {
   }
 
   let statusCode = error.statusCode || 500;
-  let code = error.code || 'INTERNAL_SERVER_ERROR';
+  let code = statusCode >= 500 ? 'INTERNAL_SERVER_ERROR' : error.code || 'BAD_REQUEST';
   let message = statusCode >= 500 ? 'Ocorreu um erro interno.' : error.message;
 
   if (error instanceof multer.MulterError) {

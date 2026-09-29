@@ -11,17 +11,19 @@
 // usando multer com diskStorage. Não utilize provedores externos.
 
 const express = require('express');
+const config = require('./config');
 const DocumentRepository = require('./repositories/documentRepository');
 const DocumentService = require('./services/documentService');
 const createDocumentController = require('./controllers/documentController');
 const createDocumentRoutes = require('./routes/documentRoutes');
-const { upload, storageDirectory } = require('./middleware/documentUpload');
+const { upload } = require('./middleware/documentUpload');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const documentRepository = new DocumentRepository(storageDirectory);
-const documentService = new DocumentService(documentRepository);
+app.disable('x-powered-by');
+
+const documentRepository = new DocumentRepository(config.storageDirectory);
+const documentService = new DocumentService(documentRepository, config.owner);
 const documentController = createDocumentController(documentService);
 
 app.use(express.json());
@@ -34,8 +36,8 @@ app.get('/health', (req, res) => {
 app.use(errorHandler);
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`DMS backend ouvindo na porta ${PORT}`);
+  app.listen(config.port, () => {
+    console.log(`DMS backend ouvindo na porta ${config.port}`);
   });
 }
 

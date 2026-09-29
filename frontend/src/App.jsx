@@ -23,28 +23,26 @@ export default function App() {
   }
 
   useEffect(() => {
-    let isMounted = true;
+    const controller = new AbortController();
 
-    listDocuments()
+    listDocuments({ signal: controller.signal })
       .then((result) => {
-        if (isMounted) {
-          setDocuments(result);
-          setLoadError('');
-        }
+        setDocuments(result);
+        setLoadError('');
       })
       .catch((error) => {
-        if (isMounted) {
+        if (error.name !== 'AbortError') {
           setLoadError(error.message);
         }
       })
       .finally(() => {
-        if (isMounted) {
+        if (!controller.signal.aborted) {
           setIsLoading(false);
         }
       });
 
     return () => {
-      isMounted = false;
+      controller.abort();
     };
   }, []);
 

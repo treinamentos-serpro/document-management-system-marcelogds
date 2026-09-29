@@ -1,4 +1,4 @@
-async function request(path, options) {
+async function request(path, options = {}) {
   const response = await fetch(`/api${path}`, options);
 
   if (!response.ok) {
@@ -9,8 +9,8 @@ async function request(path, options) {
   return response;
 }
 
-export async function listDocuments() {
-  const response = await request('/documents');
+export async function listDocuments(options) {
+  const response = await request('/documents', options);
   const body = await response.json();
   return body.documents;
 }

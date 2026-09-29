@@ -1,4 +1,4 @@
-const { randomUUID } = require('node:crypto');
+const createDocumentMetadata = require('./documentFactory');
 
 function createServiceError(statusCode, code, message) {
   return Object.assign(new Error(message), { statusCode, code });
@@ -12,25 +12,7 @@ class DocumentService {
 
   async createDocument(file) {
     try {
-      const originalName = file.originalname
-        .replace(/\\/g, '/')
-        .split('/')
-        .pop()
-        .replace(/[\u0000-\u001f\u007f]/g, '')
-        .trim();
-
-      if (!originalName || originalName === '.' || originalName === '..') {
-        throw createServiceError(400, 'INVALID_FILE_NAME', 'O nome do arquivo é inválido.');
-      }
-
-      return this.documentRepository.create({
-        id: randomUUID(),
-        originalName,
-        size: file.size,
-        uploadedAt: new Date().toISOString(),
-        owner: this.owner,
-        storageName: file.filename,
-      });
+      return this.documentRepository.create(createDocumentMetadata(file, this.owner));
     } catch (error) {
       await this.documentRepository.removeStoredFile(file.filename).catch(() => {});
       throw error;
